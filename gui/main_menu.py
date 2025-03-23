@@ -1,3 +1,4 @@
+import logging
 import sys
 import time
 import webbrowser
@@ -5,13 +6,19 @@ from PySide6.QtWidgets import (QApplication, QWidget, QVBoxLayout,
                                QPushButton, QLineEdit, QLabel, QProgressBar,
                                QFileDialog, QMessageBox, QDialog, QHBoxLayout)
 from PySide6.QtGui import QIcon, QFont
-from PySide6.QtCore import Qt, QSize
+from PySide6.QtCore import Qt, QSize, QThread
 
 from gui.dialog_selector import DialogSelectorDialog
 from gui.styles import FOLDER_LBL_STYLE_PICK, FOLDER_LBL_STYLE_ERR, ICON, FOLDER_ICON
 from styles import APP_STYLE, BTN_STYLE
-from gui.worker import ConversationThread
+from gui.worker import ConversationThread, DownloadThread
 
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler()]
+)
+logger = logging.getLogger(__name__)
 
 class MediaSaverApp(QWidget):
     def __init__(self):
@@ -21,6 +28,9 @@ class MediaSaverApp(QWidget):
         self.dialogs = []
         self.selected_dialogs = []
         self.save_path = ""
+        self.conversation_thread = None
+        self.download_thread = None
+        self.download_complete = False
 
     def initUI(self):
         self.setWindowTitle('VK Media Downloader')
@@ -97,11 +107,11 @@ class MediaSaverApp(QWidget):
         self.progress.setValue(0)
         self.progress.setVisible(True)
 
-        self.thread = ConversationThread(token)
-        self.thread.progress_updated.connect(self._update_progress)
-        self.thread.finished.connect(self._handle_dialogs_loaded)
-        self.thread.error_occurred.connect(self._handle_dialogs_error)
-        self.thread.start()
+        self.conversation_thread = ConversationThread(token)
+        self.conversation_thread.progress_updated.connect(self._update_progress)
+        self.conversation_thread.finished.connect(self._handle_dialogs_loaded)
+        self.conversation_thread.error_occurred.connect(self._handle_dialogs_error)
+        self.conversation_thread.start()
 
     def _update_progress(self, value):
         current_value = self.progress.value()
@@ -114,7 +124,7 @@ class MediaSaverApp(QWidget):
             time.sleep(0.005)
 
     def _handle_dialogs_loaded(self, labels):
-        self.progress.setValue(100)
+        self.progress.setValue(0)
 
         dialog = DialogSelectorDialog(labels, self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
@@ -126,28 +136,75 @@ class MediaSaverApp(QWidget):
         self.show_error(error_msg)
 
     def start_download(self):
+        if not self.selected_dialogs:
+            self.show_error("Нет выбранных диалогов!")
+            return
 
         try:
-            total = len(self.selected_dialogs)
-            for i, peer_id in enumerate(self.selected_dialogs):
-                self.progress.setValue(int((i / total) * 100))
-                
-                # 1. Получение сообщений из диалога
-                # messages = vk.method("messages.getHistory", {...})
+            self.download_complete = False
+            self.progress.setValue(0)
 
-                # 2. Парсинг вложений
-                # for msg in messages:
-                #     обработка attachments
+            if self.download_thread:
+                try:
+                    self.download_thread.finished.disconnect()
+                    self.download_thread.progress_updated.disconnect()
+                    self.download_thread.error_occurred.disconnect()
+                except TypeError:
+                    pass
 
-                # 3. Скачивание файлов с сохранением метаданных
-                # download_media(url, path, dialog_id)
+            self.download_thread = DownloadThread(
+                token=self.token_input.text(),
+                dialogs=self.selected_dialogs,
+                save_path=self.save_path
+            )
 
-                # 4. Обновление прогресс-бара
+            self.download_thread.progress_updated.connect(self._update_progress)
+            self.download_thread.finished.connect(self._handle_download_finished)
+            self.download_thread.error_occurred.connect(self._handle_download_error)
 
-            self.show_success('Загрузка завершена!')
+            self.download_thread.start()
+
         except Exception as e:
-            self.show_error(f"Ошибка загрузки: {str(e)}")
+            self.show_error(f"Ошибка запуска загрузки: {str(e)}")
 
+    def _handle_download_finished(self):
+        if not self.download_complete:
+            self.download_complete = True
+            self.progress.setValue(100)
+            self.show_success('Загрузка завершена!')
+
+            try:
+                self.download_thread.finished.disconnect()
+                self.download_thread.progress_updated.disconnect()
+                self.download_thread.error_occurred.disconnect()
+            except Exception as e:
+                logger.error(f"Ошибка отключения сигналов: {str(e)}")
+
+            self.download_thread = None
+
+    def _handle_download_error(self, error_msg):
+        self.progress.setVisible(False)
+        self.show_error(error_msg)
+
+    def closeEvent(self, event):
+        threads = []
+
+        if isinstance(self.conversation_thread, QThread):
+            threads.append(self.conversation_thread)
+
+        if isinstance(self.download_thread, QThread):
+            threads.append(self.download_thread)
+
+        for thread in threads:
+            try:
+                if thread.isRunning():
+                    thread.quit()
+                    thread.wait(2000)
+            except Exception as e:
+                logger.error(f"Ошибка остановки потока: {str(e)}")
+
+        event.accept()
+        self.download_complete = True
 
     def show_error(self, text):
         msg = QMessageBox(self)

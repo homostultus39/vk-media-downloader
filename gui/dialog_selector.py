@@ -1,3 +1,4 @@
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QPushButton, QListWidget, QListWidgetItem, QCheckBox
 
 from gui.styles import APP_STYLE
@@ -17,10 +18,12 @@ class DialogSelectorDialog(QDialog):
         layout.addWidget(self.btn_toggle_all)
 
         self.list_widget = QListWidget()
-        for label in dialog_labels:
+
+        for dialog_data in dialog_labels:
             item = QListWidgetItem()
-            check = QCheckBox(label)
-            check.setChecked(True)
+            check = QCheckBox(f"{dialog_data['title']}")
+            check.setProperty("peer_id", dialog_data["peer_id"])
+            check.setChecked(False)
             self.list_widget.addItem(item)
             self.list_widget.setItemWidget(item, check)
 
@@ -33,7 +36,6 @@ class DialogSelectorDialog(QDialog):
         self.setLayout(layout)
 
     def toggle_all_selection(self):
-        """Переключает состояние всех чекбоксов"""
         new_state = self.btn_toggle_all.text() == "Выбрать все"
         for i in range(self.list_widget.count()):
             item = self.list_widget.item(i)
@@ -43,11 +45,13 @@ class DialogSelectorDialog(QDialog):
         self.btn_toggle_all.setText("Снять все" if new_state else "Выбрать все")
 
     def get_selected_labels(self):
-        """Возвращает список выбранных меток"""
         selected = []
         for i in range(self.list_widget.count()):
             item = self.list_widget.item(i)
             widget = self.list_widget.itemWidget(item)
             if widget.isChecked():
-                selected.append(widget.text())
+                selected.append({
+                    'title': widget.text(),
+                    'peer_id': widget.property("peer_id")
+                })
         return selected
