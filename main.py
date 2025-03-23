@@ -9,8 +9,7 @@ from PySide6.QtGui import QIcon, QFont
 from PySide6.QtCore import Qt, QSize, QThread
 
 from gui.dialog_selector import DialogSelectorDialog
-from gui.styles import FOLDER_LBL_STYLE_PICK, FOLDER_LBL_STYLE_ERR, ICON, FOLDER_ICON
-from styles import APP_STYLE, BTN_STYLE
+from gui.styles import FOLDER_LBL_STYLE_PICK, FOLDER_LBL_STYLE_ERR, ICON, FOLDER_ICON, APP_STYLE, BTN_STYLE
 from gui.worker import ConversationThread, DownloadThread
 
 logging.basicConfig(
