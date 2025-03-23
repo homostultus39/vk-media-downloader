@@ -1,4 +1,4 @@
-![image](https://github.com/user-attachments/assets/d6bb62a6-0b91-432a-bc82-3116f483e7e5)# VK Media Downloader
+# VK Media Downloader
 
 **Приложение для скачивания медиафайлов из ВКонтакте с сохранением метаданных**
 
@@ -6,6 +6,7 @@
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
 <img src="https://img.icons8.com/color/96/000000/vk-com.png" width="100" align="right">
+
 
 ## Инструкция
 1. Переходите по ссылке: _https://vkhost.github.io_
