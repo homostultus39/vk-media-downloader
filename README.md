@@ -5,8 +5,6 @@
 [![Python](https://img.shields.io/badge/Python-3.9%2B-blue?logo=python)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
-<img src="https://img.icons8.com/color/96/000000/vk-com.png" width="100" align="right">
-
 
 ## Инструкция
 1. Переходите по ссылке: _https://vkhost.github.io_
@@ -23,3 +21,5 @@
 7. Полученный токен вставляете в соответствующее поле в приложении
 
 ![image](https://github.com/user-attachments/assets/2532fe47-1359-4d57-8e7c-c9487c46583d)
+
+8. Далее выбираете папку, в которую хотите сохранить диалоги и нажимаете кнопку _**Выбрать диалог**_
