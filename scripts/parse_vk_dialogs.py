@@ -1,5 +1,6 @@
 import logging
 import sys
+import os
 import time
 import requests
 import datetime
@@ -171,6 +172,7 @@ class AppSaver:
 
             owner_id = video['owner_id']
             video_id = video['id']
+            upload_ts = video.get('date')
             access_key = video.get('access_key')
 
             # Пытаемся вытащить прямую ссылку (mobile=1)
@@ -188,7 +190,7 @@ class AppSaver:
                 'type': 'video',
                 'url': final_url,
                 'title': video.get('title', ''),
-                'date': video.get('date', 0),
+                'date': upload_ts,
                 'id': f"video{owner_id}_{video_id}"
             }
 
@@ -265,6 +267,8 @@ class AppSaver:
                 elif path.lower().endswith('.mp4'):
                     self._add_video_metadata(path, item_date)
 
+                self._set_file_mtime(path, item_date)
+
             return True
 
         except Exception as e:
@@ -288,6 +292,12 @@ class AppSaver:
         except Exception as e:
             logger.error(f"Ошибка записи метаданных видео: {str(e)}")
             return False
+
+    def _set_file_mtime(self, file_path, timestamp):
+        try:
+            os.utime(file_path, (timestamp, timestamp))
+        except Exception as e:
+            logger.warning(f"Не удалось установить время файла: {e}")
 
     def _add_photo_metadata(self, file_path, create_date):
         try:
